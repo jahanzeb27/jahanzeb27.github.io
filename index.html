@@ -1,5 +1,411 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shift & Overtime Tracker</title>
+    <style>
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #f4f6f9; color: #1a202c; margin: 0; padding: 20px 15px; display: flex; justify-content: center; }
+        
+        .app-container { 
+            width: 100%; max-width: 440px; background: #ffffff; padding: 24px 20px;
+            border-radius: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; position: relative;
+        }
+
+        .page-view { display: block; }
+        .page-view.hidden { display: none; }
+
+        .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .app-header-text h2 { margin: 0; font-size: 20px; font-weight: 700; color: #0f172a; }
+        .app-header-text p { margin: 3px 0 0 0; font-size: 12px; color: #64748b; }
+
+        .icon-btn { 
+            background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; 
+            padding: 7px 14px; font-size: 12px; font-weight: 600; color: #475569; cursor: pointer; 
+        }
+        .icon-btn:hover { background: #e2e8f0; }
+
+        .settings-form-group { margin-bottom: 16px; }
+        .settings-form-group label { 
+            font-size: 11px; font-weight: 700; color: #475569; display: block; 
+            margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .settings-form-group input[type="number"], .settings-form-group input[type="date"] {
+            width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #cbd5e1;
+            background: #ffffff; color: #0f172a; font-size: 14px; outline: none;
+        }
+        .row-group { display: flex; gap: 10px; }
+        .row-group .settings-form-group { flex: 1; }
+
+        .switch-container { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px dashed #e2e8f0; border-bottom: 1px dashed #e2e8f0; margin-bottom: 16px;}
+        .switch-container label { margin-bottom: 0; font-size: 12px; }
+        .switch { position: relative; display: inline-block; width: 46px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { 
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; 
+            background-color: #cbd5e1; transition: .3s; border-radius: 26px; 
+        }
+        .slider:before { 
+            position: absolute; content: ""; height: 20px; width: 20px; 
+            left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .slider { background-color: #10b981; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        .save-settings-btn { 
+            width: 100%; background: #2563eb; color: white; border: none; padding: 12px; 
+            border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; margin-top: 5px; 
+        }
+        
+        .nav-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .nav-btn { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; }
+        .month-title { font-size: 17px; font-weight: 700; color: #0f172a; }
+
+        .summary-card { 
+            background: #eff6ff; border-left: 4px solid #2563eb; padding: 14px 16px; 
+            border-radius: 12px; margin-bottom: 18px; font-size: 13px; color: #1e40af; line-height: 1.6; 
+        }
+        .pay-summary { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #bfdbfe; font-size: 14px; }
+
+        .legend { display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 11px; font-weight: 600; color: #475569; background: #f8fafc; padding: 8px 12px; border-radius: 8px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .dot { width: 10px; height: 10px; border-radius: 3px; }
+        
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .day-header { text-align: center; font-size: 11px; font-weight: 700; color: #94a3b8; padding-bottom: 6px; text-transform: uppercase; }
+        
+        .day-card { 
+            background: #f1f5f9; aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; cursor: pointer; border: 1px solid #e2e8f0; user-select: none; -webkit-tap-highlight-color: transparent; 
+        }
+        .day-num { font-size: 14px; font-weight: 700; }
+        .day-sub { font-size: 9px; font-weight: 600; margin-top: 2px; text-align: center; }
+        
+        /* Status Colors */
+        .status-work { background: #10b981 !important; color: #ffffff !important; border-color: #059669 !important; }
+        .status-off { background: #f1f5f9 !important; color: #64748b !important; border-color: #e2e8f0 !important; }
+        .status-off-ot { background: #f59e0b !important; color: #ffffff !important; border-color: #d97706 !important; } /* OT done on an OFF Day */
+        .status-leave { background: #3b82f6 !important; color: #ffffff !important; border-color: #2563eb !important; }
+
+        .ot-badge { background: #fef3c7; color: #92400e; padding: 1px 4px; border-radius: 4px; font-size: 8px; font-weight: 700; margin-top: 1px; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 100; }
+        .modal { background: #ffffff; width: 90%; max-width: 360px; padding: 24px; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+        .modal-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+        .modal-btn { padding: 11px; border: none; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; color: white; }
+        .btn-full-ot { background: #f59e0b; }
+        .btn-half-ot { background: #d97706; }
+        .btn-leave { background: #3b82f6; }
+        .btn-reset { background: #64748b; }
+        .btn-cancel { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; grid-column: span 2; margin-top: 4px; }
+    </style>
+</head>
 <body>
-Hello World asdasd 
+
+<div class="app-container">
+    <!-- CALENDAR VIEW -->
+    <div id="calendarView" class="page-view">
+        <div class="app-header">
+            <div class="app-header-text">
+                <h2>Shift Rota Tracker</h2>
+                <p>4-On / 4-Off Schedule</p>
+            </div>
+            <button class="icon-btn" onclick="showPage('settingsView')">⚙ Settings</button>
+        </div>
+
+        <div class="nav-bar">
+            <button class="nav-btn" onclick="changeMonth(-1)">◀ Prev</button>
+            <span class="month-title" id="monthTitle"></span>
+            <button class="nav-btn" onclick="changeMonth(1)">Next ▶</button>
+        </div>
+
+        <div class="summary-card" id="summaryCard">
+            Scheduled: 0h | Overtime: 0h<br><b>Total Hours: 0h</b>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><div class="dot" style="background:#10b981"></div> Work</div>
+            <div class="legend-item"><div class="dot" style="background:#cbd5e1"></div> Off</div>
+            <div class="legend-item"><div class="dot" style="background:#f59e0b"></div> Off Day OT</div>
+            <div class="legend-item"><div class="dot" style="background:#3b82f6"></div> Leave</div>
+        </div>
+
+        <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+
+    <!-- SETTINGS VIEW -->
+    <div id="settingsView" class="page-view hidden">
+        <div class="app-header">
+            <div class="app-header-text">
+                <h2>App Settings</h2>
+                <p>Configure Shifts & Defaults</p>
+            </div>
+            <button class="icon-btn" onclick="showPage('calendarView')">◀ Back</button>
+        </div>
+
+        <div class="settings-form-group">
+            <label>Shift Start Date (1st Work Day):</label>
+            <input type="date" id="startDateInput">
+        </div>
+
+        <div class="row-group">
+            <div class="settings-form-group">
+                <label>Work Hours (0.5 step):</label>
+                <input type="number" id="stdWorkHoursInput" step="0.5" min="0" max="24" placeholder="e.g. 12">
+            </div>
+            <div class="settings-form-group">
+                <label>Std. OT (Mins):</label>
+                <input type="number" id="stdOtInput" step="5" min="0" placeholder="e.g. 30">
+            </div>
+        </div>
+
+        <div class="switch-container">
+            <label>Auto-apply OT to Work Days?</label>
+            <label class="switch">
+                <input type="checkbox" id="autoOtInput">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="row-group">
+            <div class="settings-form-group">
+                <label>Hourly Rate (£/$):</label>
+                <input type="number" id="hourlyRateInput" step="0.5" min="0" placeholder="e.g. 15.0">
+            </div>
+            <div class="settings-form-group">
+                <label>OT Multiplier (x):</label>
+                <input type="number" id="otMultiplierInput" step="0.1" min="1" placeholder="e.g. 1.5">
+            </div>
+        </div>
+
+        <button class="save-settings-btn" onclick="saveSettings()">Save & Update Rota</button>
+    </div>
+</div>
+
+<!-- Modal Dialog -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <h3 id="modalTitle" style="margin:0 0 4px 0; color:#0f172a; font-size:18px;">Edit Day</h3>
+        <p id="modalSubTitle" style="font-size: 13px; color:#64748b; margin:0 0 10px 0;"></p>
+        <div class="modal-btns" id="modalButtonsContainer"></div>
+    </div>
+</div>
+
+<script>
+    function getStoredData() {
+        try { const data = localStorage.getItem('rotaAppData_v4'); return data ? JSON.parse(data) : null; } catch(e) { return null; }
+    }
+    function setStoredData(data) {
+        try { localStorage.setItem('rotaAppData_v4', JSON.stringify(data)); } catch(e) { console.log('Storage error'); }
+    }
+
+    let appData = getStoredData() || {
+        startDate: '2026-01-01',
+        stdWorkHours: 12,
+        standardOtMins: 30,
+        autoOt: false,
+        hourlyRate: 0,
+        otMultiplier: 1.5,
+        overrides: {}
+    };
+
+    let displayYear = new Date().getFullYear();
+    let displayMonth = new Date().getMonth();
+    let selectedDateKey = null;
+
+    document.getElementById('startDateInput').value = appData.startDate;
+    document.getElementById('stdWorkHoursInput').value = appData.stdWorkHours ?? 12;
+    document.getElementById('stdOtInput').value = appData.standardOtMins ?? 30;
+    document.getElementById('autoOtInput').checked = appData.autoOt || false;
+    document.getElementById('hourlyRateInput').value = appData.hourlyRate || '';
+    document.getElementById('otMultiplierInput').value = appData.otMultiplier || 1.5;
+
+    function saveAppData() { setStoredData(appData); }
+
+    function showPage(pageId) {
+        document.querySelectorAll('.page-view').forEach(p => p.classList.add('hidden'));
+        document.getElementById(pageId).classList.remove('hidden');
+    }
+
+    function saveSettings() {
+        const startDateVal = document.getElementById('startDateInput').value;
+        let workHrs = parseFloat(document.getElementById('stdWorkHoursInput').value);
+        let otMins = parseInt(document.getElementById('stdOtInput').value);
+        let rateVal = parseFloat(document.getElementById('hourlyRateInput').value);
+        let multVal = parseFloat(document.getElementById('otMultiplierInput').value);
+
+        if (isNaN(workHrs) || workHrs < 0) workHrs = 12;
+        if (isNaN(otMins) || otMins < 0) otMins = 0;
+        if (isNaN(rateVal) || rateVal < 0) rateVal = 0;
+        if (isNaN(multVal) || multVal < 1) multVal = 1.5;
+
+        appData.startDate = startDateVal || '2026-01-01';
+        appData.stdWorkHours = workHrs;
+        appData.standardOtMins = otMins;
+        appData.autoOt = document.getElementById('autoOtInput').checked;
+        appData.hourlyRate = rateVal;
+        appData.otMultiplier = multVal;
+        
+        saveAppData();
+        renderCalendar();
+        showPage('calendarView');
+    }
+
+    function changeMonth(delta) {
+        displayMonth += delta;
+        if (displayMonth > 11) { displayMonth = 0; displayYear++; }
+        if (displayMonth < 0) { displayMonth = 11; displayYear--; }
+        renderCalendar();
+    }
+
+    function getShiftStatus(targetDateStr) {
+        const parts = targetDateStr.split('-');
+        const target = new Date(parts[0], parts[1] - 1, parts[2]);
+        const startParts = appData.startDate.split('-');
+        const start = new Date(startParts[0], startParts[1] - 1, startParts[2]);
+        const diffDays = Math.round((target - start) / (1000 * 60 * 60 * 24));
+        let cycleDay = diffDays % 8;
+        if (cycleDay < 0) cycleDay += 8;
+        return (cycleDay >= 0 && cycleDay <= 3) ? 'WORK' : 'OFF';
+    }
+
+    function openModal(dateKey) {
+        selectedDateKey = dateKey;
+        const parts = dateKey.split('-');
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        const isWorkDay = (getShiftStatus(dateKey) === 'WORK');
+        
+        document.getElementById('modalTitle').innerText = 'Manage: ' + d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        
+        const stdMins = appData.standardOtMins || 30;
+        const stdHrs = (stdMins / 60);
+        const fullShiftHrs = appData.stdWorkHours || 12;
+        
+        let htmlBtns = '';
+
+        if (isWorkDay) {
+            document.getElementById('modalSubTitle').innerText = "Scheduled Work Day - Manage Overtime or Leave:";
+            htmlBtns = `
+                <button class="modal-btn btn-full-ot" onclick="setOverride(${stdHrs})">+${stdMins}m Std OT</button>
+                <button class="modal-btn btn-half-ot" onclick="setOverride(${fullShiftHrs})">+${fullShiftHrs}h Full OT</button>
+                <button class="modal-btn btn-leave" onclick="setOverride(0)">Leave / Off</button>
+                <button class="modal-btn btn-reset" onclick="setOverride(null)">Reset Default</button>
+                <button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
+            `;
+        } else {
+            // OFF DAY Options: Shift Cover OR Other OT
+            document.getElementById('modalSubTitle').innerText = "OFF Day - Select Overtime Option:";
+            htmlBtns = `
+                <button class="modal-btn btn-full-ot" onclick="setOverride(${fullShiftHrs})">Shift Cover (+${fullShiftHrs}h)</button>
+                <button class="modal-btn btn-half-ot" onclick="setOverride(${stdHrs})">Other OT (+${stdMins}m)</button>
+                <button class="modal-btn btn-reset" onclick="setOverride(null)" style="grid-column: span 2;">Reset Off Day</button>
+                <button class="modal-btn btn-cancel" onclick="closeModal()">Cancel</button>
+            `;
+        }
+        
+        document.getElementById('modalButtonsContainer').innerHTML = htmlBtns;
+        document.getElementById('modalOverlay').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+
+    function setOverride(otHours) {
+        if (otHours === null) {
+            delete appData.overrides[selectedDateKey];
+        } else {
+            appData.overrides[selectedDateKey] = { otHrs: otHours };
+        }
+        saveAppData(); closeModal(); renderCalendar();
+    }
+
+    function renderCalendar() {
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('monthTitle').innerText = `${monthNames[displayMonth]} ${displayYear}`;
+
+        ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(dh => {
+            const el = document.createElement('div'); el.className = 'day-header'; el.innerText = dh; grid.appendChild(el);
+        });
+
+        const firstDay = new Date(displayYear, displayMonth, 1);
+        const lastDay = new Date(displayYear, displayMonth + 1, 0);
+        let startingDay = firstDay.getDay() - 1; 
+        if (startingDay === -1) startingDay = 6;
+        for (let i = 0; i < startingDay; i++) grid.appendChild(document.createElement('div'));
+
+        let totalScheduled = 0, totalOT = 0;
+        const workBaseHrs = appData.stdWorkHours ?? 12;
+        const autoOtHrs = appData.autoOt ? ((appData.standardOtMins || 0) / 60) : 0;
+
+        for (let day = 1; day <= lastDay.getDate(); day++) {
+            const mStr = String(displayMonth + 1).padStart(2, '0');
+            const dStr = String(day).padStart(2, '0');
+            const dateKey = `${displayYear}-${mStr}-${dStr}`;
+
+            const isWork = (getShiftStatus(dateKey) === 'WORK');
+            let dayBase = isWork ? workBaseHrs : 0;
+            let dayOt = isWork ? autoOtHrs : 0;
+            let isLeave = false;
+
+            if (appData.overrides[dateKey]) {
+                const ov = appData.overrides[dateKey];
+                if (ov.otHrs === 0) { 
+                    dayBase = 0; dayOt = 0; isLeave = true;
+                } else { 
+                    dayOt = ov.otHrs;
+                }
+            }
+
+            totalScheduled += dayBase;
+            totalOT += dayOt;
+
+            const card = document.createElement('div');
+            card.className = 'day-card';
+            
+            const baseStr = (dayBase % 1 === 0) ? dayBase : dayBase.toFixed(1);
+            const otStr = (dayOt % 1 === 0) ? dayOt : dayOt.toFixed(1);
+
+            if (isLeave) {
+                card.classList.add('status-leave'); 
+                card.innerHTML = `<div class="day-num">${day}</div><div class="day-sub">LEAVE</div>`;
+            } else if (isWork) {
+                // Scheduled Work Day keeps GREEN color even with OT
+                card.classList.add('status-work');
+                if (dayOt > 0) {
+                    card.innerHTML = `<div class="day-num">${day}</div><div class="day-sub">${baseStr}h</div><div class="ot-badge">+${otStr}h OT</div>`;
+                } else {
+                    card.innerHTML = `<div class="day-num">${day}</div><div class="day-sub">${baseStr}h</div>`;
+                }
+            } else {
+                // OFF Day
+                if (dayOt > 0) {
+                    card.classList.add('status-off-ot'); // Amber/Orange color for OT on an OFF day
+                    card.innerHTML = `<div class="day-num">${day}</div><div class="day-sub">+${otStr}h OT</div>`;
+                } else {
+                    card.classList.add('status-off');
+                    card.innerHTML = `<div class="day-num">${day}</div><div class="day-sub">OFF</div>`;
+                }
+            }
+
+            card.onclick = () => openModal(dateKey);
+            grid.appendChild(card);
+        }
+
+        const totalWorked = totalScheduled + totalOT;
+        let summaryHTML = `Scheduled: <b>${totalScheduled.toFixed(1)}h</b> | Overtime: <b style="color:#d97706">${totalOT.toFixed(1)}h</b><br><span style="font-size:15px">Total Worked: <b>${totalWorked.toFixed(1)}h</b></span>`;
+
+        if (appData.hourlyRate > 0) {
+            const basePay = totalScheduled * appData.hourlyRate;
+            const otPay = totalOT * (appData.hourlyRate * appData.otMultiplier);
+            summaryHTML += `<div class="pay-summary">Est. Base Pay: <b>${basePay.toFixed(2)}</b> | OT Pay: <b>${otPay.toFixed(2)}</b><br><b>Total Est. Pay: <span style="color:#2563eb;">${(basePay + otPay).toFixed(2)}</span></b></div>`;
+        }
+
+        document.getElementById('summaryCard').innerHTML = summaryHTML;
+    }
+
+    renderCalendar();
+</script>
 </body>
 </html>
